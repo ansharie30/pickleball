@@ -5,9 +5,11 @@ const props = defineProps({
     match: Object,
 });
 
+const games = ref(props.match.games ?? []);
+
 const currentGame = ref(
-    props.match.games && props.match.games.length > 0
-        ? props.match.games[props.match.games.length - 1]
+    games.value.length > 0
+        ? games.value[games.value.length - 1]
         : { team_a_score: 0, team_b_score: 0, game_number: 1 }
 );
 
@@ -22,6 +24,7 @@ onMounted(() => {
         channel.listen('.score.updated', (e) => {
             if (e.match) {
                 if (e.match.games && e.match.games.length > 0) {
+                    games.value = e.match.games;
                     currentGame.value = e.match.games[e.match.games.length - 1];
                 }
                 status.value = e.match.status;
@@ -65,6 +68,21 @@ onUnmounted(() => {
                 <div class="text-8xl md:text-9xl font-bold">
                     {{ currentGame.team_b_score }}
                 </div>
+            </div>
+        </div>
+
+        <!-- Previous games strip -->
+        <div v-if="games.length > 1" class="mt-10 flex gap-6 text-sm text-gray-400">
+            <div
+                v-for="game in games"
+                :key="game.id ?? game.game_number"
+                class="flex flex-col items-center px-4 py-2 rounded-lg"
+                :class="game.game_number === currentGame.game_number ? 'bg-white/5 text-gray-200' : ''"
+            >
+                <span class="text-xs uppercase tracking-wide mb-1">Game {{ game.game_number }}</span>
+                <span class="font-semibold text-base">
+                    {{ game.team_a_score }} – {{ game.team_b_score }}
+                </span>
             </div>
         </div>
 

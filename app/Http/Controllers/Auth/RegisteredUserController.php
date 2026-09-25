@@ -41,6 +41,14 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'player',
+        ]);
+
+        // Link a PlayerProfile to this account so they can be added to teams
+        \App\Models\PlayerProfile::create([
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'rating' => 1000,
         ]);
 
         event(new Registered($user));

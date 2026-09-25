@@ -4,12 +4,13 @@ import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     division: Object,
+    players: Array,
 });
 
 const form = useForm({
     team_name: '',
-    player_one_name: '',
-    player_two_name: '',
+    player_one_id: '',
+    player_two_id: '',
 });
 
 const submit = () => {
@@ -29,28 +30,43 @@ const submit = () => {
             <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
+                    <div v-if="players.length === 0" class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+                        No registered players yet. Players need to create an account before they can be added to a team.
+                    </div>
+
                     <form @submit.prevent="submit" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Player 1 Name</label>
-                            <input
-                                v-model="form.player_one_name"
-                                type="text"
+                            <label class="block text-sm font-medium text-gray-700">Player 1</label>
+                            <select
+                                v-model="form.player_one_id"
                                 class="mt-1 block w-full border-gray-300 rounded-md"
-                            />
-                            <div v-if="form.errors.player_one_name" class="text-red-600 text-sm">
-                                {{ form.errors.player_one_name }}
+                            >
+                                <option value="" disabled>Select a player</option>
+                                <option v-for="player in players" :key="player.id" :value="player.id">
+                                    {{ player.name }}
+                                </option>
+                            </select>
+                            <div v-if="form.errors.player_one_id" class="text-red-600 text-sm">
+                                {{ form.errors.player_one_id }}
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700">
-                                Player 2 Name <span class="text-gray-400">(leave blank for singles)</span>
+                                Player 2 <span class="text-gray-400">(leave blank for singles)</span>
                             </label>
-                            <input
-                                v-model="form.player_two_name"
-                                type="text"
+                            <select
+                                v-model="form.player_two_id"
                                 class="mt-1 block w-full border-gray-300 rounded-md"
-                            />
+                            >
+                                <option value="">— None (Singles) —</option>
+                                <option v-for="player in players" :key="player.id" :value="player.id">
+                                    {{ player.name }}
+                                </option>
+                            </select>
+                            <div v-if="form.errors.player_two_id" class="text-red-600 text-sm">
+                                {{ form.errors.player_two_id }}
+                            </div>
                         </div>
 
                         <div>
@@ -67,8 +83,8 @@ const submit = () => {
 
                         <button
                             type="submit"
-                            :disabled="form.processing"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                            :disabled="form.processing || players.length === 0"
+                            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
                         >
                             Register Team
                         </button>

@@ -15,6 +15,7 @@ class CourtController extends Controller
 
         return Inertia::render('Courts/Index', [
             'courts' => $courts,
+            'venues' => Venue::all(['id', 'name']),
         ]);
     }
 

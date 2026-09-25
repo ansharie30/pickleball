@@ -7,6 +7,7 @@ use App\Models\PlayerProfile;
 use App\Models\TeamModel;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class TeamController extends Controller
 {
@@ -16,6 +17,7 @@ class TeamController extends Controller
 
         return Inertia::render('Teams/Create', [
             'division' => $division,
+            'players' => PlayerProfile::whereNotNull('user_id')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -23,14 +25,15 @@ class TeamController extends Controller
     {
         $validated = $request->validate([
             'team_name' => 'nullable|string|max:255',
-            'player_one_name' => 'required|string|max:255',
-            'player_two_name' => 'nullable|string|max:255', // nullable for singles
+            'player_one_id' => 'required|exists:player_profiles,id',
+            'player_two_id' => 'nullable|different:player_one_id|exists:player_profiles,id',
         ]);
 
-        $playerOne = PlayerProfile::create(['name' => $validated['player_one_name']]);
+        $playerOne = PlayerProfile::findOrFail($validated['player_one_id']);
+        $playerTwo = !empty($validated['player_two_id']) ? PlayerProfile::find($validated['player_two_id']) : null;
 
         $teamName = $validated['team_name']
-            ?? $validated['player_one_name'] . (isset($validated['player_two_name']) ? '/' . $validated['player_two_name'] : '');
+            ?? $playerOne->name . ($playerTwo ? '/' . $playerTwo->name : '');
 
         $team = TeamModel::create([
             'tournament_id' => $division->tournament_id,
@@ -40,8 +43,7 @@ class TeamController extends Controller
 
         $team->players()->attach($playerOne->id);
 
-        if (!empty($validated['player_two_name'])) {
-            $playerTwo = PlayerProfile::create(['name' => $validated['player_two_name']]);
+        if ($playerTwo) {
             $team->players()->attach($playerTwo->id);
         }
 

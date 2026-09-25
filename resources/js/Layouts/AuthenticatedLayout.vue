@@ -1,24 +1,38 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 
 const sidebarOpen = ref(false);
+const page = usePage();
 
-const navItems = [
-    { name: 'Dashboard', route: 'dashboard', match: 'dashboard' },
-    { name: 'Tournaments', route: 'tournaments.index', match: 'tournaments.*' },
-    { name: 'Courts', route: 'courts.index', match: 'courts.*' },
-    { name: 'Players', route: 'players.index', match: 'players.*' },
-];
+const isAdmin = computed(() => page.props.auth.user.role === 'admin');
+
+const navItems = computed(() => {
+    if (isAdmin.value) {
+        return [
+            { name: 'Dashboard', route: 'dashboard', match: 'dashboard' },
+            { name: 'Tournaments', route: 'tournaments.index', match: 'tournaments.*' },
+            { name: 'Venues', route: 'venues.index', match: 'venues.*' },
+            { name: 'Courts', route: 'courts.index', match: 'courts.*' },
+            { name: 'Players', route: 'players.index', match: 'players.*' },
+        ];
+    }
+
+    return [
+        { name: 'My Portal', route: 'player.portal', match: 'player.portal' },
+    ];
+});
 
 const icons = {
     Dashboard: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
     Tournaments: 'M8 21h8M12 17v4M7 4h10v4a5 5 0 01-10 0V4zM5 4H3v2a4 4 0 004 4M19 4h2v2a4 4 0 01-4 4',
+    Venues: 'M3 21h18M5 21V7l7-4 7 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1',
     Courts: 'M4 4h16v16H4zM4 12h16M12 4v16',
     Players: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
+    'My Portal': 'M12 4.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7zM4 20a8 8 0 0116 0',
 };
 </script>
 
@@ -117,7 +131,6 @@ const icons = {
                     </svg>
                 </button>
                 <ApplicationLogo class="h-5 w-5 text-gray-900" />
-                <span class="font-semibold text-gray-900 text-sm">Pickleball</span>
             </div>
 
             <!-- Page Heading -->

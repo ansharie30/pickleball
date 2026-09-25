@@ -10,15 +10,16 @@ use App\Http\Controllers\CourtController;
 use App\Http\Controllers\QuickMatchController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\VenueController;
+use App\Http\Controllers\PlayerPortalController;
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('tournaments', TournamentController::class);
     Route::post('/divisions/{division}/generate-matches', [TournamentController::class, 'generateMatches'])
     ->name('divisions.generate-matches');
-    
+
     Route::get('/divisions/{division}/standings', [TournamentController::class, 'standings'])
     ->name('divisions.standings');
-    Route::get('/watch/{match}', [MatchController::class, 'publicShow'])->name('matches.public');
     Route::resource('courts', CourtController::class)->only(['index', 'create', 'store']);
     Route::patch('/courts/{court}/status', [CourtController::class, 'updateStatus'])->name('courts.status');
     Route::patch('/matches/{match}/court', [MatchController::class, 'assignCourt'])->name('matches.assign-court');
@@ -34,12 +35,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/matches/{match}/edit', [MatchController::class, 'edit'])->name('matches.edit');
     Route::patch('/matches/{match}', [MatchController::class, 'update'])->name('matches.update');
     Route::delete('/matches/{match}', [MatchController::class, 'destroy'])->name('matches.destroy');
+
+    Route::resource('venues', VenueController::class)->only(['index', 'create', 'store']);
+
 });
+
+Route::get('/my-portal', [PlayerPortalController::class, 'index'])
+    ->middleware('auth')
+    ->name('player.portal');
 
 Route::get('/courts/{court}/quick-match', [QuickMatchController::class, 'create'])->name('quick-match.create');
 Route::post('/courts/{court}/quick-match', [QuickMatchController::class, 'store'])->name('quick-match.store');
 Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show');
 Route::post('/matches/{match}/score', [MatchController::class, 'updateScore'])->name('matches.score');
+Route::get('/watch/{match}', [MatchController::class, 'publicShow'])->name('matches.public');
+Route::get('/live-scores', [MatchController::class, 'publicIndex'])->name('matches.public-index');
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -47,9 +58,13 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-});
+})->name('welcome');
 
 Route::get('/dashboard', function () {
+    if (!request()->user()->isAdmin()) {
+        return redirect()->route('player.portal');
+    }
+
     return Inertia::render('Dashboard', [
         'stats' => [
             'total_tournaments' => \App\Models\Tournament::count(),
@@ -61,7 +76,6 @@ Route::get('/dashboard', function () {
         ],
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
-
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

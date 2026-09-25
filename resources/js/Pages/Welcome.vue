@@ -180,7 +180,7 @@ const features = [
                                 </Link>
                                 <Link
                                     v-if="canLogin"
-                                    :href="route('login')"
+                                    :href="route('matches.public-index')"
                                     class="rounded-md px-5 py-3 text-sm font-semibold text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                 >
                                     View Live Scores

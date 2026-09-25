@@ -197,4 +197,16 @@ class MatchController extends Controller
 
         return redirect()->back()->with('success', 'Match deleted.');
     }
+
+    public function publicIndex()
+    {
+        $matches = MatchModel::with(['teamA', 'teamB', 'court', 'tournament'])
+            ->orderByRaw("CASE status WHEN 'in_progress' THEN 0 WHEN 'scheduled' THEN 1 WHEN 'completed' THEN 2 END")
+            ->latest('updated_at')
+            ->get();
+
+        return Inertia::render('Matches/PublicIndex', [
+            'matches' => $matches,
+        ]);
+    }
 }
