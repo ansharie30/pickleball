@@ -27,32 +27,29 @@ class MatchGenerator
 
     public function generateSingleElimination(Division $division): void
     {
-        $teams = $division->teams->shuffle()->values(); // random seeding
+        $teams = $division->teams->shuffle()->values();
         $teamCount = $teams->count();
 
         if ($teamCount < 2) {
             return;
         }
 
-        // Find next power of 2 to determine byes
         $bracketSize = 2 ** ceil(log($teamCount, 2));
         $byeCount = $bracketSize - $teamCount;
+        $totalRounds = (int) log($bracketSize, 2);
 
-        // Give byes to the first N teams (simple approach — no seeding logic yet)
-        $round1Teams = $teams->values();
-        $matchesRound1 = [];
+        $roundName = $this->roundNameForSize($totalRounds, 1);
 
         $i = 0;
-        while ($i < $round1Teams->count()) {
+        while ($i < $teams->count()) {
             if ($byeCount > 0) {
-                // This team advances automatically — no match created yet
                 $byeCount--;
                 $i++;
                 continue;
             }
 
-            $teamA = $round1Teams[$i] ?? null;
-            $teamB = $round1Teams[$i + 1] ?? null;
+            $teamA = $teams[$i] ?? null;
+            $teamB = $teams[$i + 1] ?? null;
 
             if ($teamA && $teamB) {
                 MatchModel::create([
@@ -60,12 +57,31 @@ class MatchGenerator
                     'division_id' => $division->id,
                     'team_a_id' => $teamA->id,
                     'team_b_id' => $teamB->id,
-                    'round' => 'Round 1',
+                    'round' => $roundName,
                     'status' => 'scheduled',
                 ]);
             }
 
             $i += 2;
         }
+    }
+
+    /**
+     * Given the total number of rounds in a bracket, and the current round number
+     * (1-indexed, counting from the first round), return the correct round label.
+     * Example: totalRounds=2 -> Round 1 is "Semifinal", Round 2 is "Final".
+     * Example: totalRounds=1 -> Round 1 is "Final".
+     * Example: totalRounds=3 -> Round 1 "Quarterfinal", Round 2 "Semifinal", Round 3 "Final".
+     */
+    public function roundNameForSize(int $totalRounds, int $currentRound): string
+    {
+        $roundsFromEnd = $totalRounds - $currentRound; // 0 = final round
+
+        return match ($roundsFromEnd) {
+            0 => 'Final',
+            1 => 'Semifinal',
+            2 => 'Quarterfinal',
+            default => 'Round ' . $currentRound,
+        };
     }
 }

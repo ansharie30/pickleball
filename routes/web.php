@@ -9,6 +9,7 @@ use App\Http\Controllers\MatchController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\QuickMatchController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\PlayerController;
 
 Route::middleware(['auth'])->group(function () {
     Route::resource('tournaments', TournamentController::class);
@@ -26,6 +27,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tournaments/{tournament}/divisions/create', [TournamentController::class, 'createDivision'])->name('divisions.create');
     Route::post('/tournaments/{tournament}/divisions', [TournamentController::class, 'storeDivision'])->name('divisions.store');
     Route::get('/divisions/{division}/bracket', [TournamentController::class, 'bracket'])->name('divisions.bracket');
+
+    Route::get('/players', [PlayerController::class, 'index'])->name('players.index');
+    Route::get('/players/{player}', [PlayerController::class, 'show'])->name('players.show');
+
+    Route::get('/matches/{match}/edit', [MatchController::class, 'edit'])->name('matches.edit');
+    Route::patch('/matches/{match}', [MatchController::class, 'update'])->name('matches.update');
+    Route::delete('/matches/{match}', [MatchController::class, 'destroy'])->name('matches.destroy');
 });
 
 Route::get('/courts/{court}/quick-match', [QuickMatchController::class, 'create'])->name('quick-match.create');

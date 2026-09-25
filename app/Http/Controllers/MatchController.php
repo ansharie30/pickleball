@@ -106,7 +106,12 @@ class MatchController extends Controller
             return;
         }
 
-        $nextRoundName = $this->nextRoundName($match->round);
+        // How many matches will the NEXT round have?
+        $nextRoundMatchCount = intdiv($winners->count(), 2);
+
+        // Total rounds remaining after this one, based on how many matches are left.
+        // If next round has 1 match, that's the Final. If 2 matches, that's Semifinal, etc.
+        $nextRoundName = $this->roundNameForMatchCount($nextRoundMatchCount);
 
         for ($i = 0; $i < $winners->count(); $i += 2) {
             $teamA = $winners[$i] ?? null;
@@ -125,13 +130,17 @@ class MatchController extends Controller
         }
     }
 
-    private function nextRoundName(string $currentRound): string
+    /**
+     * Given how many matches exist in a round, return its name.
+     * 1 match = Final, 2 matches = Semifinal, 4 matches = Quarterfinal, etc.
+     */
+    private function roundNameForMatchCount(int $matchCount): string
     {
-        return match ($currentRound) {
-            'Round 1' => 'Quarterfinal',
-            'Quarterfinal' => 'Semifinal',
-            'Semifinal' => 'Final',
-            default => 'Next Round',
+        return match ($matchCount) {
+            1 => 'Final',
+            2 => 'Semifinal',
+            4 => 'Quarterfinal',
+            default => $matchCount * 2 . '-Team Round',
         };
     }
 
@@ -155,5 +164,37 @@ class MatchController extends Controller
         \App\Models\Court::find($validated['court_id'])->update(['status' => 'in_use']);
 
         return back();
+    }
+
+    public function edit(MatchModel $match)
+    {
+        $match->load(['teamA', 'teamB', 'division.teams']);
+
+        return Inertia::render('Matches/Edit', [
+            'match' => $match,
+            'availableTeams' => $match->division ? $match->division->teams : [],
+        ]);
+    }
+
+    public function update(Request $request, MatchModel $match)
+    {
+        $validated = $request->validate([
+            'team_a_id' => 'required|exists:teams,id',
+            'team_b_id' => 'required|different:team_a_id|exists:teams,id',
+            'scheduled_at' => 'nullable|date',
+            'status' => 'required|in:scheduled,in_progress,completed',
+        ]);
+
+        $match->update($validated);
+
+        return redirect()->route('matches.show', $match)->with('success', 'Match updated.');
+    }
+
+    public function destroy(MatchModel $match)
+    {
+        $match->games()->delete();
+        $match->delete();
+
+        return redirect()->back()->with('success', 'Match deleted.');
     }
 }

@@ -1,9 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import QRCode from 'qrcode';
-import { onMounted as onMountedQr } from 'vue'; // not needed separately, just reuse onMounted below
 
 const props = defineProps({
     match: Object,
@@ -11,19 +10,6 @@ const props = defineProps({
 
 const qrCanvas = ref(null);
 const publicUrl = window.location.origin + '/watch/' + props.match.id;
-
-onMounted(() => {
-    if (window.Echo) {
-        channel = window.Echo.channel('match.' + props.match.id);
-        channel.listen('.score.updated', (e) => {
-            if (e.match && e.match.games && e.match.games.length > 0) {
-                currentGame.value = e.match.games[e.match.games.length - 1];
-            }
-        });
-    }
-
-    QRCode.toCanvas(qrCanvas.value, publicUrl, { width: 160 });
-});
 
 const currentGame = ref(
     props.match.games && props.match.games.length > 0
@@ -42,8 +28,6 @@ watch(
 );
 
 const score = (team, action) => {
-    console.log('score clicked', team, action);
-
     router.post(route('matches.score', props.match.id), {
         team,
         action,
@@ -68,6 +52,8 @@ onMounted(() => {
     } else {
         console.warn('window.Echo is not defined');
     }
+
+    QRCode.toCanvas(qrCanvas.value, publicUrl, { width: 160 });
 });
 
 onUnmounted(() => {
@@ -85,22 +71,25 @@ onUnmounted(() => {
             </h2>
         </template>
 
-        <div class="text-center mb-6">
-            <canvas ref="qrCanvas" class="mx-auto"></canvas>
-            <p class="text-xs text-gray-400 mt-2">Scan to view public scoreboard</p>
-        </div>
-
         <div class="py-12">
             <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-                <div v-if="match.status === 'completed'" class="text-center mb-6 p-4 bg-green-50 rounded">
-                    <p class="text-green-700 font-semibold">
+
+                <div class="flex justify-between items-center mb-4">
+                    <div v-if="match.status === 'completed'" class="text-sm text-green-700 font-semibold">
                         Match Complete — Winner: {{ match.winner_team_id === match.team_a_id ? match.team_a.name : match.team_b.name }}
-                    </p>
+                    </div>
+                    <div v-else class="text-sm text-gray-500">
+                        Game {{ currentGame.game_number || 1 }}
+                    </div>
+
+                    <Link
+                        :href="route('matches.edit', match.id)"
+                        class="text-sm text-gray-500 hover:text-gray-700 hover:underline"
+                    >
+                        Edit Match
+                    </Link>
                 </div>
 
-                <div class="text-center text-sm text-gray-500 mb-4">
-                    Game {{ currentGame.game_number || 1 }}
-                </div>
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8">
 
                     <div class="grid grid-cols-2 gap-8 text-center">
@@ -138,15 +127,17 @@ onUnmounted(() => {
                             <div class="flex justify-center gap-2">
                                 <button
                                     type="button"
+                                    :disabled="match.status === 'completed'"
                                     @click="score('b', 'decrement')"
-                                    class="bg-gray-200 hover:bg-gray-300 w-12 h-12 rounded text-xl"
+                                    class="bg-gray-200 hover:bg-gray-300 w-12 h-12 rounded text-xl disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     −
                                 </button>
                                 <button
                                     type="button"
+                                    :disabled="match.status === 'completed'"
                                     @click="score('b', 'increment')"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white w-12 h-12 rounded text-xl"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white w-12 h-12 rounded text-xl disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     +
                                 </button>
@@ -156,6 +147,12 @@ onUnmounted(() => {
                     </div>
 
                 </div>
+
+                <div class="text-center mt-6">
+                    <canvas ref="qrCanvas" class="mx-auto"></canvas>
+                    <p class="text-xs text-gray-400 mt-2">Scan to view public scoreboard</p>
+                </div>
+
             </div>
         </div>
     </AuthenticatedLayout>

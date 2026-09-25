@@ -33,18 +33,24 @@ const submit = () => {
     <GuestLayout>
         <Head title="Log in" />
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
+        <div class="mb-7">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-500">Welcome back</p>
+            <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Log in to PicklePro</h1>
+            <p class="mt-2 text-sm leading-relaxed text-slate-500">Keep your matches, players, and tournament action moving.</p>
+        </div>
+
+        <div v-if="status" class="mb-4 text-sm font-medium text-emerald-600">
             {{ status }}
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" value="Email" class="text-slate-700" />
 
                 <TextInput
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full border-slate-200 bg-slate-50/50 focus:border-blue-500 focus:ring-blue-500"
                     v-model="form.email"
                     required
                     autofocus
@@ -55,12 +61,12 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Password" />
+                <InputLabel for="password" value="Password" class="text-slate-700" />
 
                 <TextInput
                     id="password"
                     type="password"
-                    class="mt-1 block w-full"
+                    class="mt-1 block w-full border-slate-200 bg-slate-50/50 focus:border-blue-500 focus:ring-blue-500"
                     v-model="form.password"
                     required
                     autocomplete="current-password"
@@ -82,13 +88,13 @@ const submit = () => {
                 <Link
                     v-if="canResetPassword"
                     :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    class="rounded-md text-sm text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                     Forgot your password?
                 </Link>
 
                 <PrimaryButton
-                    class="ms-4"
+                    class="ms-4 bg-blue-500 hover:bg-blue-400 focus:bg-blue-400 focus:ring-blue-500 active:bg-blue-600"
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
