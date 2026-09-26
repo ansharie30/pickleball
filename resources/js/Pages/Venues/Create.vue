@@ -15,47 +15,52 @@ const submit = () => {
 <template>
     <AuthenticatedLayout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                New Venue
-            </h2>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">New Venue</h1>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+        <div class="py-8 sm:py-10">
+            <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+                <div class="overflow-hidden rounded-xl bg-white shadow-[0px_14px_34px_0px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/5">
+                    <div class="border-b border-slate-100 px-6 py-5 sm:px-8">
+                        <h2 class="text-base font-semibold text-slate-900">Venue details</h2>
+                        <p class="mt-1 text-sm text-slate-500">Add a venue so you can create courts for it.</p>
+                    </div>
 
-                    <form @submit.prevent="submit" class="space-y-4">
+                    <form @submit.prevent="submit" class="space-y-6 px-6 py-6 sm:px-8">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Venue Name</label>
+                            <label class="block text-sm font-semibold text-slate-700">Venue Name</label>
                             <input
                                 v-model="form.name"
                                 type="text"
                                 placeholder="e.g. Sunrise Pickleball Courts"
-                                class="mt-1 block w-full border-gray-300 rounded-md"
+                                class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 placeholder:text-slate-400 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                             />
-                            <div v-if="form.errors.name" class="text-red-600 text-sm">
+                            <div v-if="form.errors.name" class="mt-2 text-sm text-red-600">
                                 {{ form.errors.name }}
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Address <span class="text-gray-400">(optional)</span></label>
+                            <label class="block text-sm font-semibold text-slate-700">
+                                Address <span class="text-slate-400 font-normal">(optional)</span>
+                            </label>
                             <input
                                 v-model="form.address"
                                 type="text"
-                                class="mt-1 block w-full border-gray-300 rounded-md"
+                                class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                             />
                         </div>
 
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-                        >
-                            Create Venue
-                        </button>
+                        <div class="flex justify-end border-t border-slate-100 pt-5">
+                            <button
+                                type="submit"
+                                :disabled="form.processing"
+                                class="inline-flex items-center rounded-md bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {{ form.processing ? 'Creating...' : 'Create Venue' }}
+                            </button>
+                        </div>
                     </form>
-
                 </div>
             </div>
         </div>

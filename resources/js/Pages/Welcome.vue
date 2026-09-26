@@ -141,11 +141,11 @@ const features = [
                 <main class="mt-6">
                     <!-- Hero -->
                     <div class="text-center">
-                        <span
+                        <!-- <span
                             class="inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-600 ring-1 ring-inset ring-blue-500/20"
                         >
                             Live for the 2026 season
-                        </span>
+                        </span> -->
                         <h1
                             class="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl"
                         >
@@ -177,6 +177,13 @@ const features = [
                                     class="rounded-md bg-blue-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                 >
                                     Create Free Account
+                                </Link>
+                                <Link
+                                    v-if="canLogin"
+                                    :href="route('login')"
+                                    class="rounded-md px-5 py-3 text-sm font-semibold text-slate-900 ring-1 ring-slate-300 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                >
+                                    Log in
                                 </Link>
                                 <Link
                                     v-if="canLogin"

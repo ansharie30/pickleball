@@ -19,8 +19,8 @@ class MatchController extends Controller
 
     public function updateScore(Request $request, MatchModel $match)
     {
-        if ($match->status === 'completed') {
-            return back()->withErrors(['match' => 'This match is already completed.']);
+        if ($match->status !== 'in_progress') {
+            return back()->withErrors(['match' => 'This match has not started or is already completed.']);
         }
 
         $validated = $request->validate([
@@ -57,6 +57,17 @@ class MatchController extends Controller
         }
 
         broadcast(new \App\Events\ScoreUpdated($match->fresh(['games'])))->toOthers();
+
+        return back();
+    }
+
+    public function start(MatchModel $match)
+    {
+        if ($match->status !== 'scheduled') {
+            return back()->withErrors(['match' => 'Only scheduled matches can be started.']);
+        }
+
+        $match->update(['status' => 'in_progress']);
 
         return back();
     }

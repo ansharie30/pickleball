@@ -136,5 +136,20 @@ class TournamentController extends Controller
             'rounds' => $rounds,
         ]);
     }
+
+    public function divisionMatches(Division $division)
+    {
+        $division->load('tournament');
+
+        $matches = \App\Models\MatchModel::with(['teamA', 'teamB', 'court'])
+            ->where('division_id', $division->id)
+            ->orderBy('round')
+            ->get();
+
+        return Inertia::render('Divisions/Matches', [
+            'division' => $division,
+            'matches' => $matches,
+        ]);
+    }
     
 }

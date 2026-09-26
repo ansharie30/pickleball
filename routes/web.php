@@ -38,6 +38,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::resource('venues', VenueController::class)->only(['index', 'create', 'store']);
 
+    Route::get('/divisions/{division}/matches', [TournamentController::class, 'divisionMatches'])->name('divisions.matches');
 });
 
 Route::get('/my-portal', [PlayerPortalController::class, 'index'])
@@ -47,6 +48,7 @@ Route::get('/my-portal', [PlayerPortalController::class, 'index'])
 Route::get('/courts/{court}/quick-match', [QuickMatchController::class, 'create'])->name('quick-match.create');
 Route::post('/courts/{court}/quick-match', [QuickMatchController::class, 'store'])->name('quick-match.store');
 Route::get('/matches/{match}', [MatchController::class, 'show'])->name('matches.show');
+Route::patch('/matches/{match}/start', [MatchController::class, 'start'])->name('matches.start');
 Route::post('/matches/{match}/score', [MatchController::class, 'updateScore'])->name('matches.score');
 Route::get('/watch/{match}', [MatchController::class, 'publicShow'])->name('matches.public');
 Route::get('/live-scores', [MatchController::class, 'publicIndex'])->name('matches.public-index');
