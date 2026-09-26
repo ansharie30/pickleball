@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tournament;
+use App\Models\Sport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Division;
@@ -13,12 +14,13 @@ class TournamentController extends Controller
 {
     public function index()
     {
-        $tournaments = Tournament::with('venue')
+        $tournaments = Tournament::with('venue', 'sport')
             ->latest()
             ->get();
 
         return Inertia::render('Tournaments/Index', [
             'tournaments' => $tournaments,
+            'sports' => \App\Models\Sport::orderBy('name')->get(),
         ]);
     }
 
@@ -45,12 +47,30 @@ class TournamentController extends Controller
 
     public function store(Request $request)
     {
+        $sport = Sport::find($request->input('sport_id'));
+        $teamSizeRules = match ($sport?->name) {
+            'Basketball' => 'required|integer|min:5|max:15',
+            'Volleyball' => 'required|integer|min:6|max:15',
+            default => 'nullable|integer|min:1|max:15',
+        };
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'format' => 'required|in:single_elimination,double_elimination,round_robin,pool_play',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
+            'sport_id' => 'required|exists:sports,id',
+            'target_score' => 'nullable|integer|min:1',
+            'win_by_margin' => 'nullable|integer|min:1',
+            'best_of' => 'nullable|integer|min:1',
+            'team_size' => $teamSizeRules,
+            'periods' => 'nullable|integer|min:1',
+            'period_minutes' => 'nullable|integer|min:1',
         ]);
+
+        if (in_array($sport?->name, ['Pickleball', 'Badminton'], true)) {
+            $validated['team_size'] = 2;
+        }
 
         $tournament = Tournament::create($validated);
 

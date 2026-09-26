@@ -7,10 +7,17 @@ const props = defineProps({
     players: Array,
 });
 
+const rosterSize = Number(props.division.tournament?.team_size) || 2;
+const requiresFullRoster = rosterSize > 2;
+
 const form = useForm({
     team_name: '',
     player_one_id: '',
     player_two_id: '',
+    players: Array.from({ length: rosterSize }, () => ''),
+    jersey_numbers: Array.from({ length: rosterSize }, () => ''),
+    player_one_jersey_number: '',
+    player_two_jersey_number: '',
 });
 
 const submit = () => {
@@ -37,39 +44,96 @@ const submit = () => {
                     </div>
 
                     <form @submit.prevent="submit" class="space-y-6 px-6 py-6 sm:px-8">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700">Player 1</label>
-                            <select
-                                v-model="form.player_one_id"
-                                class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            >
-                                <option value="" disabled>Select a player</option>
-                                <option v-for="player in players" :key="player.id" :value="player.id">
-                                    {{ player.name }}
-                                </option>
-                            </select>
-                            <div v-if="form.errors.player_one_id" class="mt-2 text-sm text-red-600">
-                                {{ form.errors.player_one_id }}
+                        <template v-if="requiresFullRoster">
+                            <div v-for="(playerId, index) in form.players" :key="index" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">Player {{ index + 1 }}</label>
+                                    <select
+                                        v-model.number="form.players[index]"
+                                        required
+                                        class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    >
+                                        <option value="" disabled>Select a player</option>
+                                        <option
+                                            v-for="player in players"
+                                            :key="player.id"
+                                            :value="player.id"
+                                            :disabled="form.players.some((selectedId, selectedIndex) => selectedIndex !== index && String(selectedId) === String(player.id))"
+                                        >
+                                            {{ player.name }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors[`players.${index}`]" class="mt-2 text-sm text-red-600">
+                                        {{ form.errors[`players.${index}`] }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">Number</label>
+                                    <input v-model.number="form.jersey_numbers[index]" type="number" min="0" max="99" required class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                                    <div v-if="form.errors[`jersey_numbers.${index}`]" class="mt-2 text-sm text-red-600">
+                                        {{ form.errors[`jersey_numbers.${index}`] }}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                            <div v-if="form.errors.players" class="text-sm text-red-600">
+                                {{ form.errors.players }}
+                            </div>
+                        </template>
 
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700">
-                                Player 2 <span class="text-slate-400 font-normal">(leave blank for singles)</span>
-                            </label>
-                            <select
-                                v-model="form.player_two_id"
-                                class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            >
-                                <option value="">— None (Singles) —</option>
-                                <option v-for="player in players" :key="player.id" :value="player.id">
-                                    {{ player.name }}
-                                </option>
-                            </select>
-                            <div v-if="form.errors.player_two_id" class="mt-2 text-sm text-red-600">
-                                {{ form.errors.player_two_id }}
+                        <template v-else>
+                            <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">Player 1</label>
+                                    <select
+                                        v-model="form.player_one_id"
+                                        required
+                                        class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    >
+                                        <option value="" disabled>Select a player</option>
+                                        <option v-for="player in players" :key="player.id" :value="player.id">
+                                            {{ player.name }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.player_one_id" class="mt-2 text-sm text-red-600">
+                                        {{ form.errors.player_one_id }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">Number</label>
+                                    <input v-model.number="form.player_one_jersey_number" type="number" min="0" max="99" required class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                                    <div v-if="form.errors.player_one_jersey_number" class="mt-2 text-sm text-red-600">
+                                        {{ form.errors.player_one_jersey_number }}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+
+                            <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">
+                                        Player 2 <span class="text-slate-400 font-normal">(leave blank for singles)</span>
+                                    </label>
+                                    <select
+                                        v-model="form.player_two_id"
+                                        class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    >
+                                        <option value="">— None (Singles) —</option>
+                                        <option v-for="player in players" :key="player.id" :value="player.id">
+                                            {{ player.name }}
+                                        </option>
+                                    </select>
+                                    <div v-if="form.errors.player_two_id" class="mt-2 text-sm text-red-600">
+                                        {{ form.errors.player_two_id }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-700">Number</label>
+                                    <input v-model.number="form.player_two_jersey_number" type="number" min="0" max="99" :required="Boolean(form.player_two_id)" :disabled="!form.player_two_id" class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100" />
+                                    <div v-if="form.errors.player_two_jersey_number" class="mt-2 text-sm text-red-600">
+                                        {{ form.errors.player_two_jersey_number }}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
 
                         <div>
                             <label class="block text-sm font-semibold text-slate-700">

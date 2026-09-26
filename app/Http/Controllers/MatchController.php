@@ -10,7 +10,7 @@ class MatchController extends Controller
 {
     public function show(MatchModel $match)
     {
-        $match->load(['teamA.players', 'teamB.players', 'games']);
+        $match->load(['teamA.players', 'teamB.players', 'games', 'tournament.sport', 'playerStats']);
 
         return Inertia::render('Matches/Show', [
             'match' => $match,
@@ -19,8 +19,8 @@ class MatchController extends Controller
 
     public function updateScore(Request $request, MatchModel $match)
     {
-        if ($match->status !== 'in_progress') {
-            return back()->withErrors(['match' => 'This match has not started or is already completed.']);
+        if ($match->status === 'completed') {
+            return back()->withErrors(['match' => 'This match is already completed.']);
         }
 
         $validated = $request->validate([
@@ -28,37 +28,39 @@ class MatchController extends Controller
             'action' => 'required|in:increment,decrement',
         ]);
 
-        $game = $match->games()->latest('game_number')->first();
-
-        if (!$game) {
-            $game = $match->games()->create(['game_number' => 1]);
-        }
-
+        $game = $this->currentGameFor($match);
         $column = $validated['team'] === 'a' ? 'team_a_score' : 'team_b_score';
+        $delta = $validated['action'] === 'increment' ? 1 : -1;
 
-        if ($validated['action'] === 'increment') {
-            $game->increment($column);
-        } else {
-            $game->decrement($column);
-        }
+        $this->applyScoreDelta($match, $game, $column, $delta);
 
-        $game->refresh();
-
-        // Win condition: first to 11, win by 2
-        $winningScore = 11;
-        $a = $game->team_a_score;
-        $b = $game->team_b_score;
-
-        if (($a >= $winningScore || $b >= $winningScore) && abs($a - $b) >= 2) {
-            $winnerTeamId = $a > $b ? $match->team_a_id : $match->team_b_id;
-            $game->update(['winner_team_id' => $winnerTeamId]);
-
-            $this->checkMatchCompletion($match);
-        }
-
-        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games'])))->toOthers();
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games', 'playerStats'])))->toOthers();
 
         return back();
+    }
+
+    private function checkMatchCompletion(MatchModel $match, int $bestOf): void
+    {
+        $games = $match->games()->get();
+        $gamesNeededToWin = (int) ceil($bestOf / 2);
+
+        $teamAWins = $games->where('winner_team_id', $match->team_a_id)->count();
+        $teamBWins = $games->where('winner_team_id', $match->team_b_id)->count();
+
+        if ($teamAWins === $gamesNeededToWin || $teamBWins === $gamesNeededToWin) {
+            $match->update([
+                'status' => 'completed',
+                'winner_team_id' => $teamAWins === $gamesNeededToWin ? $match->team_a_id : $match->team_b_id,
+            ]);
+
+            if ($match->tournament && in_array($match->tournament->format, ['single_elimination', 'double_elimination'])) {
+                $this->advanceWinner($match, $match->winner_team_id);
+            }
+        } else {
+            $match->games()->create([
+                'game_number' => $games->count() + 1,
+            ]);
+        }
     }
 
     public function start(MatchModel $match)
@@ -72,31 +74,6 @@ class MatchController extends Controller
         return back();
     }
 
-    private function checkMatchCompletion(MatchModel $match): void
-    {
-        $games = $match->games()->get();
-
-        $teamAWins = $games->where('winner_team_id', $match->team_a_id)->count();
-        $teamBWins = $games->where('winner_team_id', $match->team_b_id)->count();
-
-        if ($teamAWins === 2 || $teamBWins === 2) {
-            $winnerId = $teamAWins === 2 ? $match->team_a_id : $match->team_b_id;
-
-            $match->update([
-                'status' => 'completed',
-                'winner_team_id' => $winnerId,
-            ]);
-
-            // Only advance brackets for elimination formats (round_robin has no "next round")
-            if ($match->tournament && in_array($match->tournament->format, ['single_elimination', 'double_elimination'])) {
-                $this->advanceWinner($match, $winnerId);
-            }
-        } else {
-            $match->games()->create([
-                'game_number' => $games->count() + 1,
-            ]);
-        }
-    }
 
     private function advanceWinner(MatchModel $match, int $winnerId): void
     {
@@ -157,7 +134,7 @@ class MatchController extends Controller
 
     public function publicShow(MatchModel $match)
     {
-        $match->load(['teamA', 'teamB', 'games']);
+        $match->load(['teamA.players', 'teamB.players', 'games', 'playerStats', 'tournament.sport']);
 
         return Inertia::render('Matches/PublicShow', [
             'match' => $match,
@@ -219,5 +196,276 @@ class MatchController extends Controller
         return Inertia::render('Matches/PublicIndex', [
             'matches' => $matches,
         ]);
+    }
+
+    public function basketballScore(Request $request, MatchModel $match)
+    {
+        $validated = $request->validate([
+            'team' => 'required|in:a,b',
+            'points' => 'required|integer|in:1,2,3,-1',
+        ]);
+
+        $game = $match->games()->latest('game_number')->first();
+        if (!$game) {
+            $game = $match->games()->create(['game_number' => 1]);
+        }
+
+        $column = $validated['team'] === 'a' ? 'team_a_score' : 'team_b_score';
+        $game->increment($column, $validated['points']);
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games'])))->toOthers();
+
+        return back();
+    }
+
+    public function startTimer(MatchModel $match)
+    {
+        $tournament = $match->tournament;
+
+        if (!$match->current_period) {
+            $match->current_period = 1;
+            $match->period_seconds_remaining = (int) (($tournament->period_minutes ?? 10) * 60);
+            $match->status = 'in_progress';
+            $match->games()->firstOrCreate(['game_number' => 1]);
+        }
+
+        $match->timer_running = true;
+        $match->timer_started_at = now();
+        $match->save();
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games'])))->toOthers();
+
+        return back();
+    }
+
+    public function pauseTimer(MatchModel $match)
+    {
+        $tournament = $match->tournament;
+        $periodTotalSeconds = (int) (($tournament->period_minutes ?? 10) * 60);
+
+        if ($match->timer_running && $match->timer_started_at) {
+            $elapsed = now()->getTimestamp() - $match->timer_started_at->getTimestamp();
+            $elapsed = max(0, $elapsed);
+            $newRemaining = (int) $match->period_seconds_remaining - $elapsed;
+            $match->period_seconds_remaining = max(0, min($periodTotalSeconds, $newRemaining));
+        }
+
+        $match->timer_running = false;
+        $match->timer_started_at = null;
+        $match->save();
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games'])))->toOthers();
+
+        return back();
+    }
+
+    public function nextPeriod(MatchModel $match)
+    {
+        $tournament = $match->tournament;
+        $totalPeriods = $tournament->periods ?? 4;
+
+        $match->current_period = ($match->current_period ?? 1) + 1;
+        $match->period_seconds_remaining = (int) (($tournament->period_minutes ?? 10) * 60);
+        $match->timer_running = false;
+        $match->timer_started_at = null;
+
+        if ($match->current_period > $totalPeriods) {
+            $game = $match->games()->latest('game_number')->first();
+            $winnerTeamId = $game->team_a_score > $game->team_b_score ? $match->team_a_id : $match->team_b_id;
+            $game->update(['winner_team_id' => $winnerTeamId]);
+            $match->status = 'completed';
+            $match->winner_team_id = $winnerTeamId;
+            $match->current_period = $totalPeriods;
+
+            if (in_array($tournament->format, ['single_elimination', 'double_elimination'])) {
+                $this->advanceWinner($match, $winnerTeamId);
+            }
+        }
+
+        $match->save();
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games'])))->toOthers();
+
+        return back();
+    }
+
+    public function chessResult(Request $request, MatchModel $match)
+    {
+        if ($match->status === 'completed') {
+            return back()->withErrors(['match' => 'This match is already completed.']);
+        }
+
+        $validated = $request->validate([
+            'result' => 'required|in:a,b,draw',
+        ]);
+
+        $currentGame = $match->games()->latest('game_number')->first();
+        if (!$currentGame) {
+            $currentGame = $match->games()->create(['game_number' => 1]);
+        }
+
+        if ($validated['result'] === 'draw') {
+            $currentGame->update(['is_draw' => true]);
+        } else {
+            $winnerId = $validated['result'] === 'a' ? $match->team_a_id : $match->team_b_id;
+            $currentGame->update(['winner_team_id' => $winnerId]);
+        }
+
+        $tournament = $match->tournament;
+        $bestOf = $tournament->best_of ?? 3;
+        $gamesNeededToWin = (int) ceil($bestOf / 2);
+
+        $games = $match->games()->get();
+        $teamAWins = $games->where('winner_team_id', $match->team_a_id)->count();
+        $teamBWins = $games->where('winner_team_id', $match->team_b_id)->count();
+
+        if ($teamAWins >= $gamesNeededToWin || $teamBWins >= $gamesNeededToWin) {
+            $winnerId = $teamAWins > $teamBWins ? $match->team_a_id : $match->team_b_id;
+            $match->update(['status' => 'completed', 'winner_team_id' => $winnerId]);
+
+            if (in_array($tournament->format, ['single_elimination', 'double_elimination'])) {
+                $this->advanceWinner($match, $winnerId);
+            }
+        } elseif ($games->count() >= $bestOf) {
+            // All games played, no majority (can happen with draws) — match ends as a draw
+            $match->update(['status' => 'completed']);
+        } else {
+            $match->games()->create(['game_number' => $games->count() + 1]);
+        }
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games'])))->toOthers();
+
+        return back();
+    }
+
+    public function playerScore(Request $request, MatchModel $match)
+    {
+        if ($match->status === 'completed') {
+            return back()->withErrors(['match' => 'This match is already completed.']);
+        }
+
+        $validated = $request->validate([
+            'player_id' => 'required|exists:player_profiles,id',
+            'team' => 'required|in:a,b',
+            'action' => 'required|in:increment,decrement',
+        ]);
+
+        $teamId = $validated['team'] === 'a' ? $match->team_a_id : $match->team_b_id;
+        $stat = $this->getOrCreateStat($match, $validated['player_id'], $teamId);
+
+        $game = $this->currentGameFor($match);
+        $column = $validated['team'] === 'a' ? 'team_a_score' : 'team_b_score';
+
+        if ($validated['action'] === 'increment') {
+            $stat->increment('points');
+            $this->applyScoreDelta($match, $game, $column, 1);
+        } else {
+            if ($stat->points > 0) {
+                $stat->decrement('points');
+            }
+            $this->applyScoreDelta($match, $game, $column, -1);
+        }
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games', 'playerStats'])))->toOthers();
+
+        return back();
+    }
+
+    public function basketballPlayerScore(Request $request, MatchModel $match)
+    {
+        if ($match->status === 'completed') {
+            return back()->withErrors(['match' => 'This match is already completed.']);
+        }
+
+        $validated = $request->validate([
+            'player_id' => 'required|exists:player_profiles,id',
+            'team' => 'required|in:a,b',
+            'points' => 'required|integer|in:1,2,3,-1',
+        ]);
+
+        $teamId = $validated['team'] === 'a' ? $match->team_a_id : $match->team_b_id;
+        $stat = $this->getOrCreateStat($match, $validated['player_id'], $teamId);
+        $points = $validated['points'];
+
+        if ($points > 0) {
+            $stat->increment('points', $points);
+        } else {
+            $stat->update(['points' => max(0, $stat->points + $points)]);
+        }
+
+        $game = $this->currentGameFor($match);
+        $column = $validated['team'] === 'a' ? 'team_a_score' : 'team_b_score';
+        $game->increment($column, $points);
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games', 'playerStats'])))->toOthers();
+
+        return back();
+    }
+
+    public function basketballStat(Request $request, MatchModel $match)
+    {
+        $validated = $request->validate([
+            'player_id' => 'required|exists:player_profiles,id',
+            'team' => 'required|in:a,b',
+            'stat' => 'required|in:assists,rebounds',
+            'action' => 'required|in:increment,decrement',
+        ]);
+
+        $teamId = $validated['team'] === 'a' ? $match->team_a_id : $match->team_b_id;
+        $stat = $this->getOrCreateStat($match, $validated['player_id'], $teamId);
+
+        if ($validated['action'] === 'increment') {
+            $stat->increment($validated['stat']);
+        } elseif ($stat->{$validated['stat']} > 0) {
+            $stat->decrement($validated['stat']);
+        }
+
+        broadcast(new \App\Events\ScoreUpdated($match->fresh(['games', 'playerStats'])))->toOthers();
+
+        return back();
+    }
+
+    private function getOrCreateStat(MatchModel $match, int $playerId, int $teamId): \App\Models\PlayerMatchStat
+    {
+        return \App\Models\PlayerMatchStat::firstOrCreate(
+            ['match_model_id' => $match->id, 'player_profile_id' => $playerId],
+            ['team_id' => $teamId]
+        );
+    }
+
+    private function currentGameFor(MatchModel $match)
+    {
+        $game = $match->games()->latest('game_number')->first();
+
+        if (!$game) {
+            $game = $match->games()->create(['game_number' => 1]);
+        }
+
+        return $game;
+    }
+
+    private function applyScoreDelta(MatchModel $match, $game, string $column, int $delta): void
+    {
+        if ($delta >= 0) {
+            $game->increment($column, $delta);
+        } else {
+            $game->decrement($column, abs($delta));
+        }
+
+        $game->refresh();
+
+        $tournament = $match->tournament;
+        $winningScore = $tournament->target_score ?? 11;
+        $winMargin = $tournament->win_by_margin ?? 2;
+        $bestOf = $tournament->best_of ?? 3;
+
+        $a = $game->team_a_score;
+        $b = $game->team_b_score;
+
+        if (($a >= $winningScore || $b >= $winningScore) && abs($a - $b) >= $winMargin) {
+            $winnerTeamId = $a > $b ? $match->team_a_id : $match->team_b_id;
+            $game->update(['winner_team_id' => $winnerTeamId]);
+            $this->checkMatchCompletion($match, $bestOf);
+        }
     }
 }

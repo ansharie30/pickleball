@@ -60,36 +60,6 @@ const statCards = [
                     </div>
                 </div>
 
-                <div class="rounded-xl bg-white shadow-[0px_14px_34px_0px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/5 p-6">
-                    <h2 class="text-base font-semibold text-slate-900 mb-4">Quick Actions</h2>
-                    <div class="flex flex-wrap gap-3">
-                        <Link
-                            :href="route('tournaments.index')"
-                            class="inline-flex items-center rounded-md bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-400 transition"
-                        >
-                            + New Tournament
-                        </Link>
-                        <Link
-                            :href="route('courts.index')"
-                            class="inline-flex items-center rounded-md bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200 transition"
-                        >
-                            + New Court
-                        </Link>
-                        <Link
-                            :href="route('tournaments.index')"
-                            class="inline-flex items-center rounded-md bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200 transition"
-                        >
-                            View All Tournaments
-                        </Link>
-                        <Link
-                            :href="route('courts.index')"
-                            class="inline-flex items-center rounded-md bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200 transition"
-                        >
-                            View All Courts
-                        </Link>
-                    </div>
-                </div>
-
             </div>
         </div>
     </AuthenticatedLayout>

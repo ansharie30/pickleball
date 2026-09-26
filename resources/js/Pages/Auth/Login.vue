@@ -35,7 +35,7 @@ const submit = () => {
 
         <div class="mb-7">
             <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-500">Welcome back</p>
-            <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Log in to PicklePro</h1>
+            <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Log in to Courtline</h1>
             <p class="mt-2 text-sm leading-relaxed text-slate-500">Keep your matches, players, and tournament action moving.</p>
         </div>
 

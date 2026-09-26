@@ -29,7 +29,8 @@ class TeamModel extends Model
 
     public function players()
     {
-        return $this->belongsToMany(PlayerProfile::class, 'team_player', 'team_id', 'player_profile_id');
+        return $this->belongsToMany(PlayerProfile::class, 'team_player', 'team_id', 'player_profile_id')
+            ->withPivot('jersey_number');
     }
 
     public function matchesAsTeamA()

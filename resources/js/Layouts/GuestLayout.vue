@@ -15,11 +15,10 @@ import { Link } from '@inertiajs/vue3';
         <div class="relative w-full max-w-md">
             <Link href="/" class="mb-8 flex items-center justify-center gap-2">
                 <svg class="h-9 w-9 text-blue-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <ellipse cx="10.5" cy="9" rx="7" ry="8" transform="rotate(-20 10.5 9)" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.6" />
-                    <path d="M14 15.5 20.5 22" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                    <circle cx="19.5" cy="4.5" r="2.5" fill="currentColor" />
+                    <rect x="3" y="5" width="18" height="14" rx="2" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M12 5v14M6.5 9h2M6.5 15h2M15.5 9h2M15.5 15h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                 </svg>
-                <span class="text-lg font-bold tracking-tight text-slate-900">PicklePro</span>
+                <span class="text-lg font-bold tracking-tight text-slate-900">Courtline</span>
             </Link>
 
         <div class="overflow-hidden rounded-xl bg-white px-6 py-7 shadow-[0px_18px_45px_0px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/5 sm:px-8">
@@ -27,7 +26,7 @@ import { Link } from '@inertiajs/vue3';
         </div>
 
         <p class="relative mt-6 text-center text-xs text-slate-400">
-            Pickleball stats, scoring, and tournament play in one place.
+            Live scoring and tournament management for every sport.
         </p>
         </div>
     </div>

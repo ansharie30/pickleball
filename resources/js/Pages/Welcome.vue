@@ -81,33 +81,12 @@ const features = [
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
                         >
-                            <ellipse
-                                cx="10.5"
-                                cy="9"
-                                rx="7"
-                                ry="8"
-                                transform="rotate(-20 10.5 9)"
-                                fill="currentColor"
-                                fill-opacity="0.15"
-                                stroke="currentColor"
-                                stroke-width="1.6"
-                            />
-                            <path
-                                d="M14 15.5 20.5 22"
-                                stroke="currentColor"
-                                stroke-width="1.6"
-                                stroke-linecap="round"
-                            />
-                            <circle
-                                cx="19.5"
-                                cy="4.5"
-                                r="2.5"
-                                fill="currentColor"
-                            />
+                            <rect x="3" y="5" width="18" height="14" rx="2" fill="currentColor" fill-opacity="0.12" stroke="currentColor" stroke-width="1.6" />
+                            <path d="M12 5v14M6.5 9h2M6.5 15h2M15.5 9h2M15.5 15h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                         </svg>
                         <span
                             class="text-lg font-bold tracking-tight text-slate-900"
-                            >PicklePro</span
+                            >Courtline</span
                         >
                     </div>
                     <nav v-if="canLogin" class="-mx-3 flex flex-1 justify-end">
@@ -155,10 +134,9 @@ const features = [
                         <p
                             class="mx-auto mt-5 max-w-2xl text-base leading-relaxed sm:text-lg"
                         >
-                            PicklePro is the stats and scoreboard system for
-                            pickleball clubs, leagues, and tournaments —
-                            live scoring, player rankings, and match history
-                            in one place.
+                            Courtline brings live scoring, player statistics,
+                            and tournament management together for clubs,
+                            leagues, and competitions across sports.
                         </p>
                         <div
                             class="mt-8 flex flex-wrap items-center justify-center gap-3"
@@ -238,7 +216,7 @@ const features = [
                 <footer
                     class="py-16 text-center text-sm text-slate-500"
                 >
-                    PicklePro &middot; built on Laravel v{{ laravelVersion }}
+                    Courtline &middot; built on Laravel v{{ laravelVersion }}
                     (PHP v{{ phpVersion }})
                 </footer>
             </div>

@@ -12,13 +12,21 @@ use App\Models\PlayerProfile;
 use App\Models\MatchModel;
 use App\Models\Court;
 use App\Models\GameModel;
+use App\Models\PlayerMatchStat;
 
 class MatchModel extends Model
 {
     use HasFactory;
     protected $table = 'match_models';
-    protected $fillable = ['tournament_id', 'division_id', 'court_id', 'team_a_id', 'team_b_id', 'round', 'status', 'winner_team_id', 'scheduled_at'];
-    
+    protected $fillable = [
+        'tournament_id', 'division_id', 'court_id', 'team_a_id', 'team_b_id',
+        'round', 'status', 'winner_team_id', 'scheduled_at',
+        'current_period', 'period_seconds_remaining', 'timer_running', 'timer_started_at',
+    ];
+    protected $casts = [
+        'scheduled_at' => 'datetime',
+        'timer_started_at' => 'datetime',
+    ];
     public function tournament()
     {
         return $this->belongsTo(Tournament::class);
@@ -52,5 +60,10 @@ class MatchModel extends Model
     public function division()
     {
         return $this->belongsTo(Division::class);
+    }
+
+    public function playerStats()
+    {
+        return $this->hasMany(PlayerMatchStat::class, 'match_model_id');
     }
 }

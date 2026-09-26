@@ -39,6 +39,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('venues', VenueController::class)->only(['index', 'create', 'store']);
 
     Route::get('/divisions/{division}/matches', [TournamentController::class, 'divisionMatches'])->name('divisions.matches');
+
+    Route::post('/matches/{match}/basketball-score', [MatchController::class, 'basketballScore'])->name('matches.basketball-score');
+    Route::patch('/matches/{match}/timer/start', [MatchController::class, 'startTimer'])->name('matches.timer.start');
+    Route::patch('/matches/{match}/timer/pause', [MatchController::class, 'pauseTimer'])->name('matches.timer.pause');
+    Route::patch('/matches/{match}/timer/next-period', [MatchController::class, 'nextPeriod'])->name('matches.timer.next-period');
+    Route::post('/matches/{match}/chess-result', [MatchController::class, 'chessResult'])->name('matches.chess-result');
+
+    Route::post('/matches/{match}/player-score', [MatchController::class, 'playerScore'])->name('matches.player-score');
+    Route::post('/matches/{match}/basketball-player-score', [MatchController::class, 'basketballPlayerScore'])->name('matches.basketball-player-score');
+    Route::post('/matches/{match}/basketball-stat', [MatchController::class, 'basketballStat'])->name('matches.basketball-stat');
 });
 
 Route::get('/my-portal', [PlayerPortalController::class, 'index'])

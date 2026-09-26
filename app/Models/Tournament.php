@@ -10,19 +10,22 @@ use App\Models\Venue;
 use App\Models\Division;
 use App\Models\TeamModel;
 use App\Models\MatchModel;
+use App\Models\Sport;
 
 class Tournament extends Model
 {
     use HasFactory;
     protected $table = 'tournaments';
     protected $fillable = [
-        'venue_id',
-        'name',
-        'format',
-        'start_date',
-        'end_date',
-        'status',
+        'sport_id', 'venue_id', 'name', 'format', 'start_date', 'end_date', 'status',
+        'target_score', 'win_by_margin', 'best_of', 'team_size',
+        'periods', 'period_minutes',
     ];
+
+    public function sport()
+    {
+        return $this->belongsTo(Sport::class);
+    }
 
     public function venue()
     {
