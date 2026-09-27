@@ -5,10 +5,12 @@ import { useForm } from '@inertiajs/vue3';
 const props = defineProps({
     division: Object,
     players: Array,
+    positions: Array,
 });
 
 const rosterSize = Number(props.division.tournament?.team_size) || 2;
 const requiresFullRoster = rosterSize > 2;
+const hasPositions = props.positions?.length > 0;
 
 const form = useForm({
     team_name: '',
@@ -16,9 +18,16 @@ const form = useForm({
     player_two_id: '',
     players: Array.from({ length: rosterSize }, () => ''),
     jersey_numbers: Array.from({ length: rosterSize }, () => ''),
+    positions: Array.from({ length: rosterSize }, () => ''),
     player_one_jersey_number: '',
     player_two_jersey_number: '',
+    player_one_position: '',
+    player_two_position: '',
 });
+
+const limitTwoDigits = (event) => {
+    event.target.value = event.target.value.replace(/\D/g, '').slice(0, 2);
+};
 
 const submit = () => {
     form.post(route('teams.store', props.division.id));
@@ -32,7 +41,7 @@ const submit = () => {
         </template>
 
         <div class="py-8 sm:py-10">
-            <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto w-full px-4 sm:px-6 lg:px-8">
                 <div class="overflow-hidden rounded-xl bg-white shadow-[0px_14px_34px_0px_rgba(15,23,42,0.06)] ring-1 ring-slate-900/5">
                     <div class="border-b border-slate-100 px-6 py-5 sm:px-8">
                         <h2 class="text-base font-semibold text-slate-900">Team details</h2>
@@ -45,7 +54,12 @@ const submit = () => {
 
                     <form @submit.prevent="submit" class="space-y-6 px-6 py-6 sm:px-8">
                         <template v-if="requiresFullRoster">
-                            <div v-for="(playerId, index) in form.players" :key="index" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                            <div
+                                v-for="(playerId, index) in form.players"
+                                :key="index"
+                                class="grid gap-3"
+                                :class="hasPositions ? 'sm:grid-cols-[minmax(0,1fr)_18rem_5rem]' : 'sm:grid-cols-[minmax(0,1fr)_5rem]'"
+                            >
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700">Player {{ index + 1 }}</label>
                                     <select
@@ -67,9 +81,33 @@ const submit = () => {
                                         {{ form.errors[`players.${index}`] }}
                                     </div>
                                 </div>
+                                <div v-if="hasPositions">
+                                    <label :for="`player-position-${index}`" class="block text-sm font-semibold text-slate-700">Position</label>
+                                    <select
+                                        :id="`player-position-${index}`"
+                                        v-model="form.positions[index]"
+                                        required
+                                        class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    >
+                                        <option value="" disabled>Select position</option>
+                                        <option v-for="position in positions" :key="position" :value="position">{{ position }}</option>
+                                    </select>
+                                    <div v-if="form.errors[`positions.${index}`]" class="mt-2 text-sm text-red-600">
+                                        {{ form.errors[`positions.${index}`] }}
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700">Number</label>
-                                    <input v-model.number="form.jersey_numbers[index]" type="number" min="0" max="99" required class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                                    <input
+                                        v-model="form.jersey_numbers[index]"
+                                        type="text"
+                                        inputmode="numeric"
+                                        pattern="[0-9]*"
+                                        maxlength="2"
+                                        required
+                                        @input="limitTwoDigits"
+                                        class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    />
                                     <div v-if="form.errors[`jersey_numbers.${index}`]" class="mt-2 text-sm text-red-600">
                                         {{ form.errors[`jersey_numbers.${index}`] }}
                                     </div>
@@ -81,7 +119,10 @@ const submit = () => {
                         </template>
 
                         <template v-else>
-                            <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                            <div
+                                class="grid gap-3"
+                                :class="hasPositions ? 'sm:grid-cols-[minmax(0,1fr)_18rem_5rem]' : 'sm:grid-cols-[minmax(0,1fr)_5rem]'"
+                            >
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700">Player 1</label>
                                     <select
@@ -98,16 +139,36 @@ const submit = () => {
                                         {{ form.errors.player_one_id }}
                                     </div>
                                 </div>
+                                <div v-if="hasPositions">
+                                    <label for="player-one-position" class="block text-sm font-semibold text-slate-700">Position</label>
+                                    <select id="player-one-position" v-model="form.player_one_position" required class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                        <option value="" disabled>Select position</option>
+                                        <option v-for="position in positions" :key="position" :value="position">{{ position }}</option>
+                                    </select>
+                                    <div v-if="form.errors.player_one_position" class="mt-2 text-sm text-red-600">{{ form.errors.player_one_position }}</div>
+                                </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700">Number</label>
-                                    <input v-model.number="form.player_one_jersey_number" type="number" min="0" max="99" required class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                                    <input
+                                        v-model="form.player_one_jersey_number"
+                                        type="text"
+                                        inputmode="numeric"
+                                        pattern="[0-9]*"
+                                        maxlength="2"
+                                        required
+                                        @input="limitTwoDigits"
+                                        class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    />
                                     <div v-if="form.errors.player_one_jersey_number" class="mt-2 text-sm text-red-600">
                                         {{ form.errors.player_one_jersey_number }}
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                            <div
+                                class="grid gap-3"
+                                :class="hasPositions ? 'sm:grid-cols-[minmax(0,1fr)_18rem_5rem]' : 'sm:grid-cols-[minmax(0,1fr)_5rem]'"
+                            >
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700">
                                         Player 2 <span class="text-slate-400 font-normal">(leave blank for singles)</span>
@@ -125,9 +186,27 @@ const submit = () => {
                                         {{ form.errors.player_two_id }}
                                     </div>
                                 </div>
+                                <div v-if="hasPositions">
+                                    <label for="player-two-position" class="block text-sm font-semibold text-slate-700">Position</label>
+                                    <select id="player-two-position" v-model="form.player_two_position" :required="Boolean(form.player_two_id)" :disabled="!form.player_two_id" class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100">
+                                        <option value="">Select position</option>
+                                        <option v-for="position in positions" :key="position" :value="position">{{ position }}</option>
+                                    </select>
+                                    <div v-if="form.errors.player_two_position" class="mt-2 text-sm text-red-600">{{ form.errors.player_two_position }}</div>
+                                </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-700">Number</label>
-                                    <input v-model.number="form.player_two_jersey_number" type="number" min="0" max="99" :required="Boolean(form.player_two_id)" :disabled="!form.player_two_id" class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100" />
+                                    <input
+                                        v-model="form.player_two_jersey_number"
+                                        type="text"
+                                        inputmode="numeric"
+                                        pattern="[0-9]*"
+                                        maxlength="2"
+                                        :required="Boolean(form.player_two_id)"
+                                        :disabled="!form.player_two_id"
+                                        @input="limitTwoDigits"
+                                        class="mt-2 block w-full rounded-md border-slate-200 bg-slate-50/50 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100"
+                                    />
                                     <div v-if="form.errors.player_two_jersey_number" class="mt-2 text-sm text-red-600">
                                         {{ form.errors.player_two_jersey_number }}
                                     </div>

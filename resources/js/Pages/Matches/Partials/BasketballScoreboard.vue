@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
+import LineupManager from './LineupManager.vue';
 
-const props = defineProps({ match: Object });
+const props = defineProps({ match: Object, canManageLineups: Boolean });
 
 const game = computed(() => props.match.games?.[props.match.games.length - 1] ?? { team_a_score: 0, team_b_score: 0 });
 const playerStats = ref(props.match.player_stats ?? props.match.playerStats ?? []);
@@ -95,13 +96,14 @@ const pauseTimer = () => router.patch(route('matches.timer.pause', props.match.i
                 <h3 class="text-center text-sm font-semibold text-slate-700 mb-1">{{ team === 'a' ? match.team_a.name : match.team_b.name }}</h3>
                 <div class="text-center text-4xl font-bold text-slate-900 mb-4">{{ team === 'a' ? game.team_a_score : game.team_b_score }}</div>
 
-                <div v-if="(team === 'a' ? match.team_a.players : match.team_b.players)?.length" class="space-y-3">
-                    <div
-                        v-for="player in (team === 'a' ? match.team_a.players : match.team_b.players)"
-                        :key="player.id"
-                        class="rounded-md bg-slate-50 p-3"
-                    >
-                        <div class="flex items-center justify-between mb-2">
+                <LineupManager
+                    :match="match"
+                    :team-side="team"
+                    :limit="5"
+                    :can-substitute="canManageLineups && match.status !== 'completed'"
+                >
+                    <template #starter="{ player }">
+                        <div class="flex items-center justify-between gap-2 mb-2">
                             <p class="truncate text-sm font-medium text-slate-800"><span class="mr-1 text-slate-400">#{{ player.pivot?.jersey_number ?? '—' }}</span>{{ player.name }}</p>
                             <p class="shrink-0 text-xs text-slate-400">
                                 {{ statFor(player.id).points }}p · {{ statFor(player.id).assists }}a · {{ statFor(player.id).rebounds }}r
@@ -123,10 +125,16 @@ const pauseTimer = () => router.patch(route('matches.timer.pause', props.match.i
                             <button :disabled="!canUpdateStats" @click="statAction(player.id, team, 'rebounds', 'decrement')" class="h-6 w-6 rounded bg-slate-200 text-xs text-slate-600 hover:bg-slate-300 disabled:opacity-40">−</button>
                             <button :disabled="!canUpdateStats" @click="statAction(player.id, team, 'rebounds', 'increment')" class="h-6 w-6 rounded bg-amber-500 text-xs font-semibold text-white hover:bg-amber-400 disabled:opacity-40">+</button>
                         </div>
-                    </div>
-                </div>
-
-                <p v-else class="text-center text-xs text-slate-400">No players registered on this team.</p>
+                    </template>
+                    <template #bench="{ player }">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="min-w-0 truncate"><span class="mr-1 text-xs text-slate-400">#{{ player.pivot?.jersey_number ?? '—' }}</span>{{ player.name }}</span>
+                            <span class="shrink-0 text-xs text-slate-400">
+                                {{ statFor(player.id).points }}p · {{ statFor(player.id).assists }}a · {{ statFor(player.id).rebounds }}r
+                            </span>
+                        </div>
+                    </template>
+                </LineupManager>
             </div>
         </div>
 

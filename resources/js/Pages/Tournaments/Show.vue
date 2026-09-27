@@ -11,15 +11,6 @@ const assignCourt = (matchId, courtId) => {
     router.patch(route('matches.assign-court', matchId), { court_id: courtId }, { preserveScroll: true });
 };
 
-const generateMatches = (divisionId) => {
-    router.post(route('divisions.generate-matches', divisionId));
-};
-
-const divisionHasMatches = (division) => {
-    const teamIds = division.teams.map(t => t.id);
-    return props.tournament.matches.some(m => teamIds.includes(m.team_a_id) || teamIds.includes(m.team_b_id));
-};
-
 const statusColors = {
     scheduled: 'bg-gray-100 text-gray-500',
     in_progress: 'bg-amber-100 text-amber-700',
@@ -108,30 +99,29 @@ const formatLabels = {
                                     >
                                         Matches
                                     </Link>
-                                    <button
-                                        @click="generateMatches(division.id)"
-                                        :disabled="divisionHasMatches(division)"
-                                        class="inline-flex items-center rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:opacity-40"
-                                    >
-                                        {{ divisionHasMatches(division) ? 'Matches Generated' : 'Generate Matches' }}
-                                    </button>
                                 </div>
                             </div>
 
                             <div class="mt-3 flex flex-wrap gap-2">
-                                <span
+                                <div
                                     v-for="team in division.teams"
                                     :key="team.id"
-                                    class="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs text-slate-600 ring-1 ring-slate-200"
+                                    class="inline-flex items-center gap-2 rounded-full bg-slate-50 py-1 pl-3 pr-1 text-xs text-slate-600 ring-1 ring-slate-200"
                                 >
                                     {{ team.name }}
-                                </span>
+                                    <Link
+                                        :href="route('teams.edit', team.id)"
+                                        class="rounded-full px-2 py-0.5 font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                                    >
+                                        Edit
+                                    </Link>
+                                </div>
                                 <span v-if="division.teams.length === 0" class="text-xs text-slate-400">No teams registered yet.</span>
                             </div>
                         </div>
                     </div>
                 </div>
-
+                
 
                 <Link
                     :href="route('tournaments.index')"

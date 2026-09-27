@@ -5,9 +5,10 @@ import BasketballScoreboard from './Partials/BasketballScoreboard.vue';
 import ChessScoreboard from './Partials/ChessScoreboard.vue';
 import { Link } from '@inertiajs/vue3';
 
-const props = defineProps({ match: Object });
+const props = defineProps({ match: Object, canManageLineups: Boolean });
 
 const scoringType = props.match.tournament?.sport?.scoring_type ?? 'point_based';
+const isVolleyball = props.match.tournament?.sport?.name === 'Volleyball';
 </script>
 
 <template>
@@ -21,8 +22,8 @@ const scoringType = props.match.tournament?.sport?.scoring_type ?? 'point_based'
 
         <div class="py-8 sm:py-10">
             <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                <PointScoreboard v-if="scoringType === 'point_based' || scoringType === 'set_based'" :match="match" />
-                <BasketballScoreboard v-else-if="scoringType === 'timed_period'" :match="match" />
+                <PointScoreboard v-if="scoringType === 'point_based' || scoringType === 'set_based'" :match="match" :lineup-limit="isVolleyball ? 6 : 0" :can-manage-lineups="canManageLineups" />
+                <BasketballScoreboard v-else-if="scoringType === 'timed_period'" :match="match" :can-manage-lineups="canManageLineups" />
                 <ChessScoreboard v-else-if="scoringType === 'result_based'" :match="match" />
             </div>
         </div>

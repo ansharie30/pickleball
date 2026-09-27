@@ -21,11 +21,13 @@ class MatchModel extends Model
     protected $fillable = [
         'tournament_id', 'division_id', 'court_id', 'team_a_id', 'team_b_id',
         'round', 'status', 'winner_team_id', 'scheduled_at',
+        'starting_lineups',
         'current_period', 'period_seconds_remaining', 'timer_running', 'timer_started_at',
     ];
     protected $casts = [
         'scheduled_at' => 'datetime',
         'timer_started_at' => 'datetime',
+        'starting_lineups' => 'array',
     ];
     public function tournament()
     {

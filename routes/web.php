@@ -23,8 +23,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('courts', CourtController::class)->only(['index', 'create', 'store']);
     Route::patch('/courts/{court}/status', [CourtController::class, 'updateStatus'])->name('courts.status');
     Route::patch('/matches/{match}/court', [MatchController::class, 'assignCourt'])->name('matches.assign-court');
+    Route::patch('/matches/{match}/schedule', [MatchController::class, 'updateSchedule'])->name('matches.schedule');
+    Route::patch('/matches/{match}/substitute', [MatchController::class, 'substitutePlayers'])->name('matches.substitute');
     Route::get('/divisions/{division}/teams/create', [TeamController::class, 'create'])->name('teams.create');
     Route::post('/divisions/{division}/teams', [TeamController::class, 'store'])->name('teams.store');
+    Route::get('/teams/{team}/edit', [TeamController::class, 'edit'])->name('teams.edit');
+    Route::patch('/teams/{team}', [TeamController::class, 'update'])->name('teams.update');
     Route::get('/tournaments/{tournament}/divisions/create', [TournamentController::class, 'createDivision'])->name('divisions.create');
     Route::post('/tournaments/{tournament}/divisions', [TournamentController::class, 'storeDivision'])->name('divisions.store');
     Route::get('/divisions/{division}/bracket', [TournamentController::class, 'bracket'])->name('divisions.bracket');

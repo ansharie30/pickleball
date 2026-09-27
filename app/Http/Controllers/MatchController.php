@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\MatchModel;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class MatchController extends Controller
@@ -14,6 +16,7 @@ class MatchController extends Controller
 
         return Inertia::render('Matches/Show', [
             'match' => $match,
+            'canManageLineups' => request()->user()?->isAdmin() ?? false,
         ]);
     }
 
@@ -176,6 +179,62 @@ class MatchController extends Controller
         $match->update($validated);
 
         return redirect()->route('matches.show', $match)->with('success', 'Match updated.');
+    }
+
+    public function updateSchedule(Request $request, MatchModel $match)
+    {
+        $validated = $request->validate([
+            'scheduled_at' => 'nullable|date',
+        ]);
+
+        $match->update($validated);
+
+        return back();
+    }
+
+    public function substitutePlayers(Request $request, MatchModel $match)
+    {
+        $match->loadMissing('tournament.sport');
+
+        $lineupSize = match ($match->tournament?->sport?->name) {
+            'Basketball' => 5,
+            'Volleyball' => 6,
+            default => abort(422, 'Substitutions are only available for basketball and volleyball.'),
+        };
+
+        if ($match->status === 'completed') {
+            throw ValidationException::withMessages(['match' => 'Completed matches cannot be substituted.']);
+        }
+
+        $validated = $request->validate([
+            'team' => 'required|in:a,b',
+            'starter_ids' => 'required|array',
+            'starter_ids.*' => 'required|integer|distinct',
+        ]);
+
+        $team = $validated['team'] === 'a' ? $match->teamA() : $match->teamB();
+        $teamPlayerIds = $team->with('players')->firstOrFail()->players->modelKeys();
+        $starterIds = array_map('intval', $validated['starter_ids']);
+        $expectedCount = min($lineupSize, count($teamPlayerIds));
+
+        if (count($starterIds) !== $expectedCount || array_diff($starterIds, $teamPlayerIds)) {
+            throw ValidationException::withMessages([
+                'starter_ids' => 'Select the correct number of unique players registered on this team.',
+            ]);
+        }
+
+        $updatedMatch = DB::transaction(function () use ($match, $validated, $starterIds) {
+            $lockedMatch = MatchModel::query()->lockForUpdate()->findOrFail($match->id);
+            $lineups = $lockedMatch->starting_lineups ?? [];
+            $lineups[$validated['team']] = $starterIds;
+            $lockedMatch->update(['starting_lineups' => $lineups]);
+
+            return $lockedMatch->fresh(['teamA.players', 'teamB.players', 'games', 'playerStats', 'tournament.sport']);
+        });
+
+        broadcast(new \App\Events\ScoreUpdated($updatedMatch))->toOthers();
+
+        return back();
     }
 
     public function destroy(MatchModel $match)

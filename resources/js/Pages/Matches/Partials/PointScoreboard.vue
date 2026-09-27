@@ -2,10 +2,14 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import QRCode from 'qrcode';
+import LineupManager from './LineupManager.vue';
 
 const props = defineProps({
     match: Object,
+    lineupLimit: { type: Number, default: 0 },
+    canManageLineups: { type: Boolean, default: false },
 });
+const isVolleyball = props.match.tournament?.sport?.name === 'Volleyball';
 
 const qrCanvas = ref(null);
 const publicUrl = window.location.origin + '/watch/' + props.match.id;
@@ -59,6 +63,7 @@ onMounted(() => {
         channel = window.Echo.channel('match.' + props.match.id);
         channel.listen('.score.updated', (e) => {
             if (e.match) {
+                Object.assign(props.match, e.match);
                 if (e.match.games) games.value = e.match.games;
                 if (e.match.player_stats ?? e.match.playerStats) {
                     playerStats.value = e.match.player_stats ?? e.match.playerStats;
@@ -93,7 +98,7 @@ const statusConfig = {
                         <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium" :class="statusConfig[match.status]?.class">
                             {{ statusConfig[match.status]?.label ?? match.status }}
                         </span>
-                        <span v-if="match.status === 'in_progress'" class="text-sm text-slate-500">Game {{ currentGame.game_number || 1 }}</span>
+                        <span v-if="match.status === 'in_progress'" class="text-sm text-slate-500">{{ isVolleyball ? 'Set' : 'Game' }} {{ currentGame.game_number || 1 }}</span>
                     </div>
                     <span v-if="match.status === 'completed'" class="mt-1 block text-sm font-semibold text-emerald-700">
                         Winner: {{ match.winner_team_id === match.team_a_id ? match.team_a.name : match.team_b.name }}
@@ -118,7 +123,44 @@ const statusConfig = {
                         {{ team === 'a' ? currentGame.team_a_score : currentGame.team_b_score }}
                     </div>
 
-                    <div v-if="(team === 'a' ? match.team_a.players : match.team_b.players)?.length" class="space-y-2">
+                    <LineupManager
+                        v-if="lineupLimit > 0"
+                        :match="match"
+                        :team-side="team"
+                        :limit="lineupLimit"
+                        :can-substitute="canManageLineups && match.status !== 'completed'"
+                    >
+                        <template #starter="{ player }">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-medium text-slate-800"><span class="mr-1 text-slate-400">#{{ player.pivot?.jersey_number ?? '—' }}</span>{{ player.name }}</p>
+                                    <p class="text-xs text-slate-400">{{ statFor(player.id) }} pts</p>
+                                </div>
+                                <div class="flex gap-1 shrink-0">
+                                    <button
+                                        type="button"
+                                        :disabled="match.status !== 'in_progress'"
+                                        @click="scorePlayer(player.id, team, 'decrement')"
+                                        class="h-7 w-7 rounded bg-slate-200 text-sm text-slate-600 hover:bg-slate-300 disabled:opacity-40"
+                                    >−</button>
+                                    <button
+                                        type="button"
+                                        :disabled="match.status !== 'in_progress'"
+                                        @click="scorePlayer(player.id, team, 'increment')"
+                                        class="h-7 w-7 rounded bg-blue-500 text-sm font-medium text-white hover:bg-blue-400 disabled:opacity-40"
+                                    >+1</button>
+                                </div>
+                            </div>
+                        </template>
+                            <template #bench="{ player }">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="min-w-0 truncate"><span class="mr-1 text-xs text-slate-400">#{{ player.pivot?.jersey_number ?? '—' }}</span>{{ player.name }}</span>
+                                    <span class="shrink-0 text-xs text-slate-400">{{ statFor(player.id) }} pts</span>
+                                </div>
+                            </template>
+                    </LineupManager>
+
+                    <div v-else-if="(team === 'a' ? match.team_a.players : match.team_b.players)?.length" class="space-y-2">
                         <div
                             v-for="player in (team === 'a' ? match.team_a.players : match.team_b.players)"
                             :key="player.id"
@@ -160,7 +202,7 @@ const statusConfig = {
                 class="flex flex-col items-center rounded-lg px-4 py-2 ring-1"
                 :class="game.game_number === currentGame.game_number ? 'bg-blue-50 ring-blue-200' : 'bg-white ring-slate-200'"
             >
-                <span class="text-xs font-medium uppercase tracking-wide text-slate-400 mb-1">Game {{ game.game_number }}</span>
+                <span class="text-xs font-medium uppercase tracking-wide text-slate-400 mb-1">{{ isVolleyball ? 'Set' : 'Game' }} {{ game.game_number }}</span>
                 <span class="text-sm font-semibold text-slate-700">{{ game.team_a_score }} – {{ game.team_b_score }}</span>
             </div>
         </div>

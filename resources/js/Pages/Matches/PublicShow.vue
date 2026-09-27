@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import LineupManager from './Partials/LineupManager.vue';
 
 const props = defineProps({
     match: Object,
@@ -8,6 +9,10 @@ const props = defineProps({
 const games = ref(props.match.games ?? []);
 const playerStats = ref(props.match.player_stats ?? props.match.playerStats ?? []);
 const isBasketball = props.match.tournament?.sport?.scoring_type === 'timed_period';
+const isVolleyball = props.match.tournament?.sport?.name === 'Volleyball';
+const lineupLimit = props.match.tournament?.sport?.name === 'Basketball'
+    ? 5
+    : (props.match.tournament?.sport?.name === 'Volleyball' ? 6 : 0);
 const currentPeriod = ref(props.match.current_period ?? 1);
 const timerRunning = ref(Boolean(props.match.timer_running));
 const timerStartedAt = ref(props.match.timer_started_at);
@@ -60,6 +65,7 @@ onMounted(() => {
         channel = window.Echo.channel('match.' + props.match.id);
         channel.listen('.score.updated', (e) => {
             if (e.match) {
+                Object.assign(props.match, e.match);
                 if (e.match.games && e.match.games.length > 0) {
                     games.value = e.match.games;
                     currentGame.value = e.match.games[e.match.games.length - 1];
@@ -99,7 +105,7 @@ onUnmounted(() => {
             </p>
         </div>
         <div v-else-if="!isBasketball" class="mb-8 text-gray-400 text-lg">
-            Game {{ currentGame.game_number || 1 }}
+            {{ isVolleyball ? 'Set' : 'Game' }} {{ currentGame.game_number || 1 }}
         </div>
 
         <div v-if="isBasketball" class="mb-8 text-center">
@@ -117,7 +123,34 @@ onUnmounted(() => {
                     {{ team === 'a' ? currentGame.team_a_score : currentGame.team_b_score }}
                 </div>
 
-                <div v-if="(team === 'a' ? match.team_a.players : match.team_b.players)?.length" class="mt-6 space-y-2 text-left">
+                <LineupManager
+                    v-if="lineupLimit > 0"
+                    :match="match"
+                    :team-side="team"
+                    :limit="lineupLimit"
+                    dark
+                >
+                    <template #starter="{ player }">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="truncate text-sm font-medium text-gray-100"><span class="mr-1 text-gray-400">#{{ player.pivot?.jersey_number ?? '—' }}</span>{{ player.name }}</span>
+                            <span v-if="isBasketball" class="shrink-0 text-xs text-gray-300">
+                                {{ statFor(player.id).points }}p · {{ statFor(player.id).assists }}a · {{ statFor(player.id).rebounds }}r
+                            </span>
+                            <span v-else class="shrink-0 text-xs text-gray-300">{{ statFor(player.id).points }} pts</span>
+                        </div>
+                    </template>
+                    <template #bench="{ player }">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="truncate text-sm"><span class="mr-1 text-gray-400">#{{ player.pivot?.jersey_number ?? '—' }}</span>{{ player.name }}</span>
+                            <span v-if="isBasketball" class="shrink-0 text-xs text-gray-300">
+                                {{ statFor(player.id).points }}p · {{ statFor(player.id).assists }}a · {{ statFor(player.id).rebounds }}r
+                            </span>
+                            <span v-else class="shrink-0 text-xs text-gray-300">{{ statFor(player.id).points }} pts</span>
+                        </div>
+                    </template>
+                </LineupManager>
+
+                <div v-else-if="(team === 'a' ? match.team_a.players : match.team_b.players)?.length" class="mt-6 space-y-2 text-left">
                     <div
                         v-for="player in (team === 'a' ? match.team_a.players : match.team_b.players)"
                         :key="player.id"
@@ -142,7 +175,7 @@ onUnmounted(() => {
                 class="flex flex-col items-center px-4 py-2 rounded-lg"
                 :class="game.game_number === currentGame.game_number ? 'bg-white/5 text-gray-200' : ''"
             >
-                <span class="text-xs uppercase tracking-wide mb-1">Game {{ game.game_number }}</span>
+                <span class="text-xs uppercase tracking-wide mb-1">{{ isVolleyball ? 'Set' : 'Game' }} {{ game.game_number }}</span>
                 <span class="font-semibold text-base">
                     {{ game.team_a_score }} – {{ game.team_b_score }}
                 </span>
